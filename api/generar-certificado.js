@@ -1,10 +1,19 @@
-import puppeteer from "puppeteer"
+import chromium from "@sparticuz/chromium"
+import puppeteer from "puppeteer-core"
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb"
+    }
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -19,7 +28,10 @@ export default async function handler(req, res) {
     }
 
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
     })
 
     const page = await browser.newPage()
