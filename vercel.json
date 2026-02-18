@@ -1,8 +1,0 @@
-{
-  "functions": {
-    "api/generar-certificado.js": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 60
-    }
-  }
-}
