@@ -1,0 +1,14 @@
+{
+  "name": "ccc-pdf-service",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "PDF service para certificados",
+  "scripts": {
+    "test": "echo \"ok\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.97.0",
+    "puppeteer": "^24.37.4"
+  }
+}
