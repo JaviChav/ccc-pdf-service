@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
     await browser.close();
 
-    const fileName = `certificados/${certificado_id}.pdf`;
+    const fileName = `${certificado_id}.pdf`;
 
     // Subir PDF a Supabase Storage
     const { error: uploadError } = await supabaseAdmin.storage
