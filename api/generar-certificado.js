@@ -1,76 +1,86 @@
-import chromium from "@sparticuz/chromium"
-import puppeteer from "puppeteer-core"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
+import { supabaseAdmin } from "../lib/supabaseAdmin";
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "10mb"
-    }
-  }
-}
+      sizeLimit: "10mb",
+    },
+  },
+};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" })
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { certificado_id, html } = req.body
+    const { certificado_id, html } = req.body;
 
     if (!certificado_id || !html) {
-      return res.status(400).json({ error: "Missing data" })
+      return res.status(400).json({ error: "Missing certificado_id or html" });
     }
 
+    // Lanzar navegador compatible con Vercel
     const browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless
-    })
+      headless: chromium.headless,
+    });
 
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: "networkidle0" })
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
       format: "A4",
       landscape: true,
-      printBackground: true
-    })
+      printBackground: true,
+    });
 
-    await browser.close()
+    await browser.close();
 
-    const fileName = `${certificado_id}.pdf`
+    const fileName = `certificados/${certificado_id}.pdf`;
 
-    const { error } = await supabase.storage
+    // Subir PDF a Supabase Storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("certificados")
       .upload(fileName, pdfBuffer, {
         contentType: "application/pdf",
-        upsert: true
-      })
+        upsert: true,
+      });
 
-    if (error) throw error
+    if (uploadError) {
+      throw uploadError;
+    }
 
-    const { data } = supabase.storage
+    // Obtener URL pública
+    const { data } = supabaseAdmin.storage
       .from("certificados")
-      .getPublicUrl(fileName)
+      .getPublicUrl(fileName);
 
-    await supabase
+    const publicUrl = data.publicUrl;
+
+    // Guardar URL en tabla certificados
+    const { error: updateError } = await supabaseAdmin
       .from("certificados")
-      .update({ pdf_url: data.publicUrl })
-      .eq("id", certificado_id)
+      .update({ pdf_url: publicUrl })
+      .eq("id", certificado_id);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     return res.status(200).json({
-      pdf_url: data.publicUrl
-    })
+      pdf_url: publicUrl,
+    });
 
   } catch (err) {
-    console.error(err)
-    return res.status(500).json({ error: "Error generando PDF" })
+    console.error("Error generando certificado:", err);
+    return res.status(500).json({
+      error: "Error generando PDF",
+      detail: err.message,
+    });
   }
 }
