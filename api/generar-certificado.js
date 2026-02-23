@@ -15,15 +15,22 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  let browser;
+
   try {
     const { certificado_id, html } = req.body;
 
-    if (!certificado_id || !html) {
-      return res.status(400).json({ error: "Missing certificado_id or html" });
+    // Validaciones mínimas internas
+    if (!certificado_id || typeof certificado_id !== "string") {
+      return res.status(400).json({ error: "Invalid certificado_id" });
+    }
+
+    if (!html || typeof html !== "string") {
+      return res.status(400).json({ error: "Invalid html content" });
     }
 
     // Lanzar navegador compatible con Vercel
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
@@ -38,8 +45,6 @@ export default async function handler(req, res) {
       landscape: true,
       printBackground: true,
     });
-
-    await browser.close();
 
     const fileName = `${certificado_id}.pdf`;
 
@@ -77,10 +82,13 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("Error generando certificado:", err);
+    console.error("PDF SERVICE ERROR:", err);
     return res.status(500).json({
       error: "Error generando PDF",
-      detail: err.message,
     });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 }
