@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "PDF service para certificados",
-  "scripts": {
-    "test": "echo \"ok\""
-  },
   "dependencies": {
     "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.97.0",
